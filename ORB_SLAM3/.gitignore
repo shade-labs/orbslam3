@@ -1,0 +1,47 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+KeyFrameTrajectory.txt
+CameraTrajectory.txt
+kf_*.txt
+f_*.txt
+Thirdparty/g2o/config.h
+Vocabulary/ORBvoc.txt
+
+build/
+lib/
+
+cmake_modules/
+cmake-build-debug/
+
+ExecMean.txt
+SessionInfo.txt
+Results_Euroc.txt
+LBA_Stats.txt
+LocalMapTimeStats.txt
+TrackLocalMapStats.txt
+TrackingTimeStats.txt
+Table_Euroc
+Table_TUMVI_rooms/
+*_TimeStamps/
+*_IMU/
+MultiSession/
+*.pyc
+*.osa
+.idea/
+my_settings.txt
+
+borrar/*
+
+*/ExecMean.txt
+
+CMakeLists.txt.user
+CMakeLists_modified.txt
+
+Examples/ROS/ORB_SLAM3/CMakeLists.txt.user
