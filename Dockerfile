@@ -70,5 +70,7 @@ WORKDIR /root
 
 COPY ./run.sh .
 
+RUN chmod +x ./run.sh
+
 ENV ROS_DISTRO=$ROS_DISTRO
 CMD ["./run.sh"]

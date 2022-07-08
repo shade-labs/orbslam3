@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -i
 
 source /opt/shade/setup.sh
 source /opt/ros/$ROS_DISTRO/setup.bash

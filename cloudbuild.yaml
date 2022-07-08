@@ -1,0 +1,19 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker login --username=$$USERNAME --password=$$PASSWORD']
+    secretEnv: ['USERNAME', 'PASSWORD']
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker build -t $$USERNAME/orbslam3:${_ROS_DISTRO} . --build-arg ROS_DISTRO=${_ROS_DISTRO}']
+    secretEnv: ['USERNAME']
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker push $$USERNAME/orbslam3:${_ROS_DISTRO}']
+    secretEnv: ['USERNAME']
+availableSecrets:
+  secretManager:
+    - versionName: projects/shade-prod/secrets/DOCKER_PASSWORD_SECRET_NAME/versions/1
+      env: 'PASSWORD'
+    - versionName: projects/shade-prod/secrets/DOCKER_USERNAME_SECRET_NAME/versions/1
+      env: 'USERNAME'
