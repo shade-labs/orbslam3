@@ -68,9 +68,10 @@ RUN bash -c 'source /opt/ros/$ROS_DISTRO/setup.sh && colcon build'
 
 WORKDIR /root
 
-COPY ./run.sh .
+COPY ./run.sh ./run.sh
 
 RUN chmod +x ./run.sh
 
 ENV ROS_DISTRO=$ROS_DISTRO
-CMD ["./run.sh"]
+
+ENTRYPOINT ["/root/run.sh"]
