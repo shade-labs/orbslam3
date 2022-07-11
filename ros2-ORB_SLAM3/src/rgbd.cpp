@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
 RgbdSlamNode::RgbdSlamNode(ORB_SLAM3::System *m_SLAM)
     : Node("orbslam"), m_SLAM(m_SLAM) {
   rgb_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>( shared_ptr<rclcpp::Node>(this), "orbslam3/image_raw");
-  depth_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>( shared_ptr<rclcpp::Node>(this), "orbslam3/depth_depth");
+  depth_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>( shared_ptr<rclcpp::Node>(this), "orbslam3/image_depth");
 
   syncApproximate =
       std::make_shared<message_filters::Synchronizer<approximate_sync_policy>>(
