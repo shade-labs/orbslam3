@@ -40,11 +40,11 @@ set(LIBS
     -lboost_serialization
     -lcrypto)
 
-add_executable(rgbd src/rgbd.cpp src/common.cpp)
-target_link_libraries(rgbd ${LIBS})
-ament_target_dependencies(rgbd rclcpp sensor_msgs cv_bridge message_filters tf2_ros tf2 image_transport Pangolin)
+add_executable(slam src/slam.cpp src/common.cpp)
+target_link_libraries(slam ${LIBS})
+ament_target_dependencies(slam rclcpp sensor_msgs cv_bridge message_filters tf2_ros tf2 image_transport Pangolin)
 
-install(TARGETS rgbd
+install(TARGETS slam
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

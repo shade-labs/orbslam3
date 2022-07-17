@@ -56,16 +56,18 @@ extern std::string map_frame_id, pose_frame_id;
 
 
 void setup_ros_publishers(rclcpp::Node &node);
+
 //void setup_tf_orb_to_ros(ORB_SLAM3::System::eSensor);
 //
 //
 //void publish_ros_pose_tf(rclcpp::Node &node, cv::Mat, rclcpp::Time, ORB_SLAM3::System::eSensor);
 //void publish_tf_transform(rclcpp::Node &node, tf2::Transform, rclcpp::Time);
 //void publish_pose_stamped(tf2::Transform, rclcpp::Time);
-//void publish_ros_tracking_img(cv::Mat, rclcpp::Time);
-void publish_ros_tracking_mappoints(std::vector<ORB_SLAM3::MapPoint*>, rclcpp::Time);
+void publish_ros_tracking_img(const cv::Mat &, const rclcpp::Time &);
+
+void publish_ros_tracking_mappoints(std::vector<ORB_SLAM3::MapPoint *>, const rclcpp::Time &);
 
 
 //tf2::Transform from_orb_to_ros_tf_transform(cv::Mat);
-sensor_msgs::msg::PointCloud2 tracked_mappoints_to_pointcloud(std::vector<ORB_SLAM3::MapPoint*>, rclcpp::Time);
+sensor_msgs::msg::PointCloud2 tracked_mappoints_to_pointcloud(std::vector<ORB_SLAM3::MapPoint *>, rclcpp::Time);
 
