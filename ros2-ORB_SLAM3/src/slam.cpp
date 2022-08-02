@@ -50,7 +50,7 @@ private:
 int main(int argc, char **argv) {
     if (argc < 5) {
         std::cerr
-                << "\nUsage: ros2 run ros2_orbslam3 slam sensor_type path_to_vocabulary path_to_settings visualize"
+                << "\nUsage: ros2 run ros2_orbslam3 <rgbd/monocular/stereo> </usr/src/ORB_SLAM3/Vocabulary/ORBvoc.txt> /usr/src/ORB_SLAM3/Examples/RGB-D/RealSense_D435i.yaml true"
                 << std::endl;
         return 1;
     }
@@ -72,8 +72,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    ORB_SLAM3::System slam(argv[2], argv[3], sensor_type, visualization);
-    auto node = std::make_shared<SlamNode>(&slam, sensor_type);
+    ORB_SLAM3::System* slam = new ORB_SLAM3::System(argv[2], argv[3], sensor_type, visualization);
+    auto node = std::make_shared<SlamNode>(slam, sensor_type);
     rclcpp::spin(node);
 
     rclcpp::shutdown();

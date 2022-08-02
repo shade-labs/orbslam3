@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd /usr/src
+tar -xf /usr/src/ORB_SLAM3/Vocabulary/ORBvoc.txt.tar.gz
 
 : "${ROS_DISTRO:=foxy}"
 : "${ROS_WS:=$(pwd)/ros_ws}"
