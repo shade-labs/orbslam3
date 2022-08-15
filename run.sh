@@ -1,7 +1,7 @@
 #!/bin/bash
 
-cd /usr/src
-tar -xf /usr/src/ORB_SLAM3/Vocabulary/ORBvoc.txt.tar.gz
+# early fail
+set -e
 
 : "${ROS_DISTRO:=foxy}"
 : "${ROS_WS:=$(pwd)/ros_ws}"
@@ -30,5 +30,4 @@ source $ROS_WS/install/setup.bash
 
 export LD_LIBRARY_PATH="$PANGOLIN_DIR/build:$ORB_SLAM3_DIR/Thirdparty/DBoW2/lib:$ORB_SLAM3_DIR/Thirdparty/g2o/lib:$ORB_SLAM3_DIR/Thirdparty/Sophus/lib:$ORB_SLAM3_DIR/lib:$LD_LIBRARY_PATH"
 
-ros2 run ros2_orbslam3 slam $@
-
+ros2 run ros2_orbslam3 $@
