@@ -51,8 +51,8 @@ int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
 
   bool visualization = !strcmp(argv[3], "true");
-  ORB_SLAM3::System *slam = new ORB_SLAM3::System(argv[1], argv[2], ORB_SLAM3::System::RGBD, visualization);
-  RgbdSlamNode::SharedPtr node = std::make_shared<RgbdSlamNode>(slam);
+  ORB_SLAM3::System slam(argv[1], argv[2], ORB_SLAM3::System::RGBD, visualization);
+  RgbdSlamNode::SharedPtr node = std::make_shared<RgbdSlamNode>(&slam);
   rclcpp::spin(node);
   rclcpp::shutdown();
 
