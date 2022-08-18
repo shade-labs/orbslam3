@@ -1,6 +1,4 @@
-#!/bin/bash
-
-set -e
+#!/bin/bash -e
 
 docker build . -t shaderobotics/orbslam3-ros2
 docker run -it --rm \

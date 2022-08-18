@@ -1,30 +1,17 @@
-#!/bin/bash
+#!/bin/bash -e
 
-# early fail
-set -e
+usage() { echo "Usage: $0 SENSOR PATH_TO_VOCABULARY PATH_TO_SETTINGS GUI [--ros-args ...]" 1>&2; exit 1; }
 
+[ $# -lt 4 ] && usage
+
+OS3_DIR="$( dirname -- "$0"; )"
+echo $OS3_DIR
 : "${ROS_DISTRO:=foxy}"
-: "${ROS_WS:=$(pwd)/ros_ws}"
+: "${ROS_WS:=$OS3_DIR/ros_ws}"
 : "${ORB_SLAM3_DIR:=$(pwd)/ORB_SLAM3}"
 
 [[ -f /opt/shade/setup.sh ]] && source /opt/shade/setup.sh
 source /opt/ros/$ROS_DISTRO/setup.bash
-
-
-if [[ "$1" == "-b" ]]; then
-    shift
-
-    DIR="$(pwd)"
-    echo Building...
-
-    cd $ORB_SLAM3_DIR
-    ./build.sh
-
-    cd $ROS_WS
-    colcon build
-
-    cd "$DIR"
-fi
 
 source $ROS_WS/install/setup.bash
 

@@ -27,48 +27,47 @@ using std::placeholders::_1;
 
 class MonoSlamNode : public rclcpp::Node {
 public:
-  MonoSlamNode(ORB_SLAM3::System *slam);
+  MonoSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize);
 
   ~MonoSlamNode();
 
 private:
   using ImageMsg = sensor_msgs::msg::Image;
 
-  void GrabFrame(sensor_msgs::msg::Image::SharedPtr msgImg);
+  void GrabFrame(const sensor_msgs::msg::Image::SharedPtr msgRGB);
 
-  ORB_SLAM3::System *slam;
+  std::shared_ptr<ORB_SLAM3::System> slam;
 
-  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub;
+  rclcpp::Subscription<ImageMsg>::SharedPtr img_sub;
 };
 
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
 
-  bool visualization = !strcmp(argv[3], "true");
-  ORB_SLAM3::System slam(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR,
-                         visualization);
-  MonoSlamNode::SharedPtr node = std::make_shared<MonoSlamNode>(&slam);
+  bool visualize = !strcmp(argv[3], "true");
+  auto node = std::make_shared<MonoSlamNode>(argv[1], argv[2], visualize);
   rclcpp::spin(node);
   rclcpp::shutdown();
 
   return 0;
 }
 
-MonoSlamNode::MonoSlamNode(ORB_SLAM3::System *slam)
-    : Node("orbslam3_mono"), slam(slam) {
-  img_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
-      shared_ptr<rclcpp::Node>(this), "camera");
-  img_sub->registerCallback(&MonoSlamNode::GrabFrame, this);
+MonoSlamNode::MonoSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize) : Node("orbslam3") {
+
+  slam = std::make_shared<ORB_SLAM3::System>(vocabFile, settingsFile, ORB_SLAM3::System::MONOCULAR, visualize);
+  img_sub = this->create_subscription<ImageMsg>("camera", 10, std::bind(&MonoSlamNode::GrabFrame, this, std::placeholders::_1));
 
   setup_ros_publishers(*this);
 }
 
 MonoSlamNode::~MonoSlamNode() {
-  // Stop all threads
-  slam->Shutdown();
+  if (!slam->isShutDown()) {
+    // Stop all threads
+    slam->Shutdown();
 
-  // Save camera trajectory
-  slam->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+    // Save camera trajectory
+    // slam->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+  }
 }
 
 void MonoSlamNode::GrabFrame(const ImageMsg::SharedPtr msgImg) {
@@ -80,8 +79,7 @@ void MonoSlamNode::GrabFrame(const ImageMsg::SharedPtr msgImg) {
 
   rclcpp::Time current_frame_time = cv_ptrImg->header.stamp;
 
-  //  publish_ros_pose_tf(*this, Tcw, current_frame_time,
-  //  ORB_SLAM3::System::MONO);
+  //  publish_ros_pose_tf(*this, Tcw, current_frame_time, ORB_SLAM3::System::MONOCULAR);
 
   publish_ros_tracking_mappoints(slam->GetTrackedMapPoints(),
                                  current_frame_time);

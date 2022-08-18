@@ -56,21 +56,20 @@ RUN git clone https://github.com/stevenlovegrove/Pangolin.git && \
 ENV PANGOLIN_DIR=/usr/src/pangolin/Pangolin
 
 # build orbslam3
-WORKDIR /usr/src/ORB_SLAM3
+WORKDIR /root/ORB_SLAM3
 COPY ./ORB_SLAM3 .
 RUN ./build.sh
-ENV ORB_SLAM3_DIR=/usr/src/ORB_SLAM3
+ENV ORB_SLAM3_DIR=/root/ORB_SLAM3
 
 # build ros nodes
 WORKDIR /usr/src/ros_ws
 COPY ./ros2-ORB_SLAM3 ./src/ros2-ORB_SLAM3/
 RUN bash -c 'source /opt/ros/$ROS_DISTRO/setup.sh && colcon build'
+ENV ROS_WS=/usr/src/ros_ws
 
 WORKDIR /root
 
-COPY ./run.sh ./run.sh
-
-RUN chmod +x ./run.sh
+COPY run.sh ./
 
 ENV ROS_DISTRO=$ROS_DISTRO
 

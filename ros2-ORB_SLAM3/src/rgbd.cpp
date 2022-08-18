@@ -27,7 +27,7 @@ using std::placeholders::_1;
 
 class RgbdSlamNode : public rclcpp::Node {
 public:
-  RgbdSlamNode(ORB_SLAM3::System *slam);
+  RgbdSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize);
 
   ~RgbdSlamNode();
 
@@ -40,7 +40,7 @@ private:
   void GrabFrame(const sensor_msgs::msg::Image::SharedPtr &msgRGB,
                  const sensor_msgs::msg::Image::SharedPtr &msgD);
 
-  ORB_SLAM3::System *slam;
+  std::shared_ptr<ORB_SLAM3::System> slam;
 
   std::shared_ptr<message_filters::Subscriber<ImageMsg>> rgb_sub;
   std::shared_ptr<message_filters::Subscriber<ImageMsg>> depth_sub;
@@ -50,18 +50,17 @@ private:
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
 
-  bool visualization = !strcmp(argv[3], "true");
-  ORB_SLAM3::System slam(argv[1], argv[2], ORB_SLAM3::System::RGBD, visualization);
-  RgbdSlamNode::SharedPtr node = std::make_shared<RgbdSlamNode>(&slam);
+  bool visualize = !strcmp(argv[3], "true");
+  auto node = std::make_shared<RgbdSlamNode>(argv[1], argv[2], visualize);
   rclcpp::spin(node);
   rclcpp::shutdown();
 
   return 0;
 }
 
-RgbdSlamNode::RgbdSlamNode(ORB_SLAM3::System *slam)
-    : Node("orbslam3"), slam(slam) {
+RgbdSlamNode::RgbdSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize) : Node("orbslam3") {
 
+  slam = std::make_shared<ORB_SLAM3::System>(vocabFile, settingsFile, ORB_SLAM3::System::RGBD, visualize);
   rgb_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
       shared_ptr<rclcpp::Node>(this), "camera/rgb");
   depth_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
@@ -74,11 +73,13 @@ RgbdSlamNode::RgbdSlamNode(ORB_SLAM3::System *slam)
 }
 
 RgbdSlamNode::~RgbdSlamNode() {
-  // Stop all threads
-  slam->Shutdown();
+  if (!slam->isShutDown()) {
+    // Stop all threads
+    slam->Shutdown();
 
-  // Save camera trajectory
-  slam->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+    // Save camera trajectory
+    // slam->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+  }
 }
 
 void RgbdSlamNode::GrabFrame(const ImageMsg::SharedPtr &msgRGB,

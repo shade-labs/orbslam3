@@ -25,11 +25,11 @@
 
 using std::placeholders::_1;
 
-class SlamNode : public rclcpp::Node {
+class StereoSlamNode : public rclcpp::Node {
 public:
-  SlamNode(ORB_SLAM3::System *slam, const ORB_SLAM3::System::eSensor sensor);
+  StereoSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize);
 
-  ~SlamNode();
+  ~StereoSlamNode();
 
 private:
   using ImageMsg = sensor_msgs::msg::Image;
@@ -37,166 +37,62 @@ private:
       message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image,
                                                       sensor_msgs::msg::Image>;
 
-  void GrabRGBD(const sensor_msgs::msg::Image::SharedPtr &msgRGB,
-                const sensor_msgs::msg::Image::SharedPtr &msgD);
+  void GrabFrame(const sensor_msgs::msg::Image::SharedPtr &msgRight,
+                 const sensor_msgs::msg::Image::SharedPtr &msgLeft);
 
-  void GrabStereo(const sensor_msgs::msg::Image::SharedPtr &msgLeft,
-                  const sensor_msgs::msg::Image::SharedPtr &msgRight);
+  std::shared_ptr<ORB_SLAM3::System> slam;
 
-  void GrabMono(sensor_msgs::msg::Image::SharedPtr msgImg);
-
-  ORB_SLAM3::System *slam;
-
-  std::shared_ptr<message_filters::Subscriber<ImageMsg>> img_sub;
-  std::shared_ptr<message_filters::Subscriber<ImageMsg>> left_sub;
   std::shared_ptr<message_filters::Subscriber<ImageMsg>> right_sub;
-  std::shared_ptr<message_filters::Subscriber<ImageMsg>> rgb_sub;
-  std::shared_ptr<message_filters::Subscriber<ImageMsg>> depth_sub;
+  std::shared_ptr<message_filters::Subscriber<ImageMsg>> left_sub;
   std::shared_ptr<message_filters::Synchronizer<SyncMsg>> syncApproximate;
 };
 
 int main(int argc, char **argv) {
-  std::cerr << "STARTING" << std::endl;
-
-  if (argc < 5) {
-    std::cerr << "\nUsage: ros2 run ros2_orbslam3 <rgbd/monocular/stereo> "
-                 "</usr/src/ORB_SLAM3/Vocabulary/ORBvoc.txt> "
-                 "/usr/src/ORB_SLAM3/Examples/RGB-D/RealSense_D435i.yaml true"
-              << std::endl;
-    return 1;
-  }
-
   rclcpp::init(argc, argv);
 
-  bool visualization = !strcmp(argv[4], "true");
-  std::string sensor(argv[1]);
-
-  ORB_SLAM3::System::eSensor sensor_type;
-  if (sensor == "rgbd") {
-    sensor_type = ORB_SLAM3::System::RGBD;
-  } else if (sensor == "monocular") {
-    sensor_type = ORB_SLAM3::System::MONOCULAR;
-  } else if (sensor == "stereo") {
-    sensor_type = ORB_SLAM3::System::STEREO;
-  } else {
-    cerr << "Invalid sensor " << sensor << endl;
-    return 1;
-  }
-
-  ORB_SLAM3::System *slam =
-      new ORB_SLAM3::System(argv[2], argv[3], sensor_type, visualization);
-  auto node = std::make_shared<SlamNode>(slam, sensor_type);
+  bool visualize = !strcmp(argv[3], "true");
+  auto node = std::make_shared<StereoSlamNode>(argv[1], argv[2], visualize);
   rclcpp::spin(node);
-
-  std::cerr << "POST ALL" << std::endl;
-
   rclcpp::shutdown();
-  delete slam;
 
   return 0;
 }
 
-SlamNode::SlamNode(ORB_SLAM3::System *slam,
-                   const ORB_SLAM3::System::eSensor sensor)
-    : Node("orbslam3"), slam(slam) {
+StereoSlamNode::StereoSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize) : Node("orbslam3") {
 
-  std::cerr << "preall" << std::endl;
+  slam = std::make_shared<ORB_SLAM3::System>(vocabFile, settingsFile, ORB_SLAM3::System::STEREO, visualize);
+  right_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
+      shared_ptr<rclcpp::Node>(this), "orbslam3/camera/right");
+  left_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
+      shared_ptr<rclcpp::Node>(this), "orbslam3/camera/left");
+  syncApproximate = std::make_shared<message_filters::Synchronizer<SyncMsg>>(
+      SyncMsg(10), *right_sub, *left_sub);
+  syncApproximate->registerCallback(&StereoSlamNode::GrabFrame, this);
 
-  if (sensor == ORB_SLAM3::System::RGBD) {
-    rgb_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
-        shared_ptr<rclcpp::Node>(this), "camera/rgb");
-    depth_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
-        shared_ptr<rclcpp::Node>(this), "camera/depth");
-    syncApproximate = std::make_shared<message_filters::Synchronizer<SyncMsg>>(
-        SyncMsg(10), *rgb_sub, *depth_sub);
-    syncApproximate->registerCallback(&SlamNode::GrabRGBD, this);
-
-  } else if (sensor == ORB_SLAM3::System::MONOCULAR) {
-    img_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
-        shared_ptr<rclcpp::Node>(this), "camera");
-    img_sub->registerCallback(&SlamNode::GrabMono, this);
-  } else if (sensor == ORB_SLAM3::System::STEREO) {
-    left_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
-        shared_ptr<rclcpp::Node>(this), "camera/left");
-    right_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
-        shared_ptr<rclcpp::Node>(this), "camera/right");
-
-    syncApproximate = std::make_shared<message_filters::Synchronizer<SyncMsg>>(
-        SyncMsg(10), *left_sub, *right_sub);
-    syncApproximate->registerCallback(&SlamNode::GrabStereo, this);
-  } else {
-    RCLCPP_ERROR(this->get_logger(), "Unsupported sensor type");
-  }
-
-  std::cerr << "precall" << std::endl;
   setup_ros_publishers(*this);
-  std::cerr << "postcall" << std::endl;
 }
 
-SlamNode::~SlamNode() {
-  // Stop all threads
-  slam->Shutdown();
+StereoSlamNode::~StereoSlamNode() {
+  if (!slam->isShutDown()) {
+    // Stop all threads
+    slam->Shutdown();
 
-  // Save camera trajectory
-  slam->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+    // Save camera trajectory
+    // slam->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+  }
 }
 
-void SlamNode::GrabRGBD(const ImageMsg::SharedPtr &msgRGB,
-                        const ImageMsg::SharedPtr &msgD) {
-  const cv_bridge::CvImageConstPtr cv_ptrRGB = cv_bridge::toCvShare(msgRGB);
-  const cv_bridge::CvImageConstPtr cv_ptrD = cv_bridge::toCvShare(msgD);
-
-  cv::Mat Tcw = ORB_SLAM3::Converter::toCvMat(
-      slam->TrackRGBD(cv_ptrRGB->image, cv_ptrD->image,
-                      cv_ptrRGB->header.stamp.sec)
-          .matrix());
-
-  rclcpp::Time current_frame_time = cv_ptrRGB->header.stamp;
-
-  //  publish_ros_pose_tf(*this, Tcw, current_frame_time,
-  //  ORB_SLAM3::System::STEREO);
-
-  publish_ros_tracking_mappoints(slam->GetTrackedMapPoints(),
-                                 current_frame_time);
-
-  publish_ros_tracking_img(
-      ORB_SLAM3::Converter::toCvMat(
-          ORB_SLAM3::Converter::toSE3Quat(slam->GetCurrentFrame().GetPose())),
-      current_frame_time);
-}
-
-void SlamNode::GrabStereo(const ImageMsg::SharedPtr &msgLeft,
-                          const ImageMsg::SharedPtr &msgRight) {
-  const cv_bridge::CvImageConstPtr cv_ptrLeft = cv_bridge::toCvShare(msgLeft);
+void StereoSlamNode::GrabFrame(const ImageMsg::SharedPtr &msgRight,
+                             const ImageMsg::SharedPtr &msgLeft) {
   const cv_bridge::CvImageConstPtr cv_ptrRight = cv_bridge::toCvShare(msgRight);
+  const cv_bridge::CvImageConstPtr cv_ptrLeft = cv_bridge::toCvShare(msgLeft);
 
   cv::Mat Tcw = ORB_SLAM3::Converter::toCvMat(
-      slam->TrackStereo(cv_ptrLeft->image, cv_ptrRight->image,
-                        cv_ptrRight->header.stamp.sec)
+      slam->TrackStereo(cv_ptrRight->image, cv_ptrRight->image,
+                      cv_ptrRight->header.stamp.sec)
           .matrix());
 
-  rclcpp::Time current_frame_time = cv_ptrLeft->header.stamp;
-
-  //  publish_ros_pose_tf(*this, Tcw, current_frame_time,
-  //  ORB_SLAM3::System::STEREO);
-
-  publish_ros_tracking_mappoints(slam->GetTrackedMapPoints(),
-                                 current_frame_time);
-
-  publish_ros_tracking_img(
-      ORB_SLAM3::Converter::toCvMat(
-          ORB_SLAM3::Converter::toSE3Quat(slam->GetCurrentFrame().GetPose())),
-      current_frame_time);
-}
-
-void SlamNode::GrabMono(const ImageMsg::SharedPtr msgImg) {
-  const cv_bridge::CvImageConstPtr cv_ptrImg = cv_bridge::toCvShare(msgImg);
-
-  cv::Mat Tcw = ORB_SLAM3::Converter::toCvMat(
-      slam->TrackMonocular(cv_ptrImg->image, cv_ptrImg->header.stamp.sec)
-          .matrix());
-
-  rclcpp::Time current_frame_time = cv_ptrImg->header.stamp;
+  rclcpp::Time current_frame_time = cv_ptrRight->header.stamp;
 
   //  publish_ros_pose_tf(*this, Tcw, current_frame_time,
   //  ORB_SLAM3::System::STEREO);
