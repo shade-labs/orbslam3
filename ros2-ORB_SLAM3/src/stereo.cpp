@@ -27,7 +27,8 @@ using std::placeholders::_1;
 
 class StereoSlamNode : public rclcpp::Node {
 public:
-  StereoSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize);
+  StereoSlamNode(const std::string &vocabFile, const std::string &settingsFile,
+                 const bool visualize);
 
   ~StereoSlamNode();
 
@@ -58,9 +59,13 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-StereoSlamNode::StereoSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize) : Node("orbslam3") {
+StereoSlamNode::StereoSlamNode(const std::string &vocabFile,
+                               const std::string &settingsFile,
+                               const bool visualize)
+    : Node("orbslam3") {
 
-  slam = std::make_shared<ORB_SLAM3::System>(vocabFile, settingsFile, ORB_SLAM3::System::STEREO, visualize);
+  slam = std::make_shared<ORB_SLAM3::System>(
+      vocabFile, settingsFile, ORB_SLAM3::System::STEREO, visualize);
   right_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
       shared_ptr<rclcpp::Node>(this), "orbslam3/camera/right");
   left_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
@@ -83,19 +88,19 @@ StereoSlamNode::~StereoSlamNode() {
 }
 
 void StereoSlamNode::GrabFrame(const ImageMsg::SharedPtr &msgRight,
-                             const ImageMsg::SharedPtr &msgLeft) {
+                               const ImageMsg::SharedPtr &msgLeft) {
   const cv_bridge::CvImageConstPtr cv_ptrRight = cv_bridge::toCvShare(msgRight);
   const cv_bridge::CvImageConstPtr cv_ptrLeft = cv_bridge::toCvShare(msgLeft);
 
   cv::Mat Tcw = ORB_SLAM3::Converter::toCvMat(
       slam->TrackStereo(cv_ptrRight->image, cv_ptrRight->image,
-                      cv_ptrRight->header.stamp.sec)
+                        cv_ptrRight->header.stamp.sec)
           .matrix());
 
   rclcpp::Time current_frame_time = cv_ptrRight->header.stamp;
 
-  //  publish_ros_pose_tf(*this, Tcw, current_frame_time,
-  //  ORB_SLAM3::System::STEREO);
+  publish_ros_pose_tf(*this, Tcw, current_frame_time,
+                      ORB_SLAM3::System::STEREO);
 
   publish_ros_tracking_mappoints(slam->GetTrackedMapPoints(),
                                  current_frame_time);

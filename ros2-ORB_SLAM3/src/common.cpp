@@ -12,9 +12,8 @@ std::string map_frame_id, pose_frame_id;
 tf2::Matrix3x3 tf_orb_to_ros(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
 void setup_ros_publishers(rclcpp::Node &node) {
-  //  pose_pub =
-  //  node.create_publisher<geometry_msgs::msg::PoseStamped>("/orbslam3/camera",
-  //  1);
+  pose_pub = node.create_publisher<geometry_msgs::msg::PoseStamped>(
+      "/orbslam3/pose", 1);
 
   map_points_pub = node.create_publisher<sensor_msgs::msg::PointCloud2>(
       "orbslam3/map_points", 1);
@@ -26,50 +25,49 @@ void setup_ros_publishers(rclcpp::Node &node) {
   rendered_image_pub = image_transport.advertise("orbslam3/tracking_image", 1);
 }
 
-// void publish_ros_pose_tf(rclcpp::Node &node,
-//                         cv::Mat Tcw, rclcpp::Time current_frame_time,
-//                         ORB_SLAM3::System::eSensor sensor_type) {
-//  if (!Tcw.empty()) {
-//    tf2::Transform tf_transform =
-//        from_orb_to_ros_tf_transform(Tcw);
+void publish_ros_pose_tf(rclcpp::Node &node, cv::Mat Tcw,
+                         rclcpp::Time current_frame_time,
+                         ORB_SLAM3::System::eSensor sensor_type) {
+  if (!Tcw.empty()) {
+    tf2::Transform tf_transform = from_orb_to_ros_tf_transform(Tcw);
 
-//    publish_tf_transform(node, tf_transform, current_frame_time);
+    publish_tf_transform(node, tf_transform, current_frame_time);
 
-//    publish_pose_stamped(tf_transform, current_frame_time);
-//  }
-//}
+    publish_pose_stamped(tf_transform, current_frame_time);
+  }
+}
 
-// void publish_tf_transform(rclcpp::Node &node, tf2::Transform tf_transform,
-//                          rclcpp::Time current_frame_time) {
-//  static tf2_ros::TransformBroadcaster tf_broadcaster(node);
-//
-//  std_msgs::msg::Header header;
-//  header.stamp = current_frame_time;
-//  header.frame_id = map_frame_id;
-//
-//  geometry_msgs::msg::TransformStamped tf_msg;
-//  tf_msg.header = header;
-//  tf_msg.child_frame_id = pose_frame_id;
-//  tf_msg.transform = tf2::toMsg(tf_transform);
-//
-//  tf_broadcaster.sendTransform(tf_msg);
-//}
+void publish_tf_transform(rclcpp::Node &node, tf2::Transform tf_transform,
+                          rclcpp::Time current_frame_time) {
+  static tf2_ros::TransformBroadcaster tf_broadcaster(node);
 
-// void publish_pose_stamped(tf2::Transform tf_transform, rclcpp::Time
-// current_frame_time) {
-//  std_msgs::msg::Header header;
-//  header.stamp = current_frame_time;
-//  header.frame_id = map_frame_id;
-//
-//  geometry_msgs::msg::Pose pose;
-//  tf2::toMsg(tf_transform, pose);
-//
-//  geometry_msgs::msg::PoseStamped pose_msg;
-//  pose_msg.header = header;
-//  pose_msg.pose = pose;
-//
-//  pose_pub->publish(pose_msg);
-//}
+  std_msgs::msg::Header header;
+  header.stamp = current_frame_time;
+  header.frame_id = map_frame_id;
+
+  geometry_msgs::msg::TransformStamped tf_msg;
+  tf_msg.header = header;
+  tf_msg.child_frame_id = pose_frame_id;
+  tf_msg.transform = tf2::toMsg(tf_transform);
+
+  tf_broadcaster.sendTransform(tf_msg);
+}
+
+void publish_pose_stamped(tf2::Transform tf_transform,
+                          rclcpp::Time current_frame_time) {
+  std_msgs::msg::Header header;
+  header.stamp = current_frame_time;
+  header.frame_id = map_frame_id;
+
+  geometry_msgs::msg::Pose pose;
+  tf2::toMsg(tf_transform, pose);
+
+  geometry_msgs::msg::PoseStamped pose_msg;
+  pose_msg.header = header;
+  pose_msg.pose = pose;
+
+  pose_pub->publish(pose_msg);
+}
 
 void publish_ros_tracking_img(const cv::Mat &image,
                               const rclcpp::Time &current_frame_time) {
@@ -92,63 +90,61 @@ void publish_ros_tracking_mappoints(
   map_points_pub->publish(cloud);
 }
 
-// void setup_tf_orb_to_ros(ORB_SLAM3::System::eSensor sensor_type) {
-//  // The conversion depends on whether IMU is involved:
-//  //  z is aligned with camera's z axis = without IMU
-//  //  z is aligned with gravity = with IMU
-//  if (sensor_type == ORB_SLAM3::System::MONOCULAR ||
-//      sensor_type == ORB_SLAM3::System::STEREO ||
-//      sensor_type == ORB_SLAM3::System::RGBD) {
-//    tf_orb_to_ros.setValue(0, 0, 1, -1, 0, 0, 0, -1, 0);
-//  } else if (sensor_type == ORB_SLAM3::System::IMU_MONOCULAR ||
-//             sensor_type == ORB_SLAM3::System::IMU_STEREO) {
-//    tf_orb_to_ros.setValue(0, 1, 0, -1, 0, 0, 0, 0, 1);
-//  } else {
-//    tf_orb_to_ros.setIdentity();
-//  }
-//}
+void setup_tf_orb_to_ros(ORB_SLAM3::System::eSensor sensor_type) {
+  // The conversion depends on whether IMU is involved:
+  //  z is aligned with camera's z axis = without IMU
+  //  z is aligned with gravity = with IMU
+  if (sensor_type == ORB_SLAM3::System::MONOCULAR ||
+      sensor_type == ORB_SLAM3::System::STEREO ||
+      sensor_type == ORB_SLAM3::System::RGBD) {
+    tf_orb_to_ros.setValue(0, 0, 1, -1, 0, 0, 0, -1, 0);
+  } else if (sensor_type == ORB_SLAM3::System::IMU_MONOCULAR ||
+             sensor_type == ORB_SLAM3::System::IMU_STEREO) {
+    tf_orb_to_ros.setValue(0, 1, 0, -1, 0, 0, 0, 0, 1);
+  } else {
+    tf_orb_to_ros.setIdentity();
+  }
+}
 
-// tf2::Transform
-// from_orb_to_ros_tf_transform(cv::Mat transformation_mat) {
-//  cv::Mat orb_rotation(3, 3, CV_32F);
-//  cv::Mat orb_translation(3, 1, CV_32F);
-//
-//  orb_rotation = transformation_mat.rowRange(0, 3).colRange(0, 3);
-//  orb_translation = transformation_mat.rowRange(0, 3).col(3);
-//
-//  tf2::Matrix3x3 tf_camera_rotation(
-//      orb_rotation.at<float>(0, 0), orb_rotation.at<float>(0, 1),
-//      orb_rotation.at<float>(0, 2), orb_rotation.at<float>(1, 0),
-//      orb_rotation.at<float>(1, 1), orb_rotation.at<float>(1, 2),
-//      orb_rotation.at<float>(2, 0), orb_rotation.at<float>(2, 1),
-//      orb_rotation.at<float>(2, 2));
-//
-//  tf2::Vector3 tf_camera_translation(orb_translation.at<float>(0),
-//                                                  orb_translation.at<float>(1),
-//                                                  orb_translation.at<float>(2));
-//
-//  // cout << setprecision(9) << "Rotation: " << endl << orb_rotation << endl;
-//  // cout << setprecision(9) << "Translation xyz: " <<
-//  orb_translation.at<float>
-//  // (0) << " " << orb_translation.at<float> (1) << " " <<
-//  // orb_translation.at<float> (2) << endl;
-//
-//  // Transform from orb coordinate system to ros coordinate system on camera
-//  // coordinates
-//  // tf_camera_rotation = tf_orb_to_ros * tf_camera_rotation;
-//  // tf_camera_translation = tf_orb_to_ros * tf_camera_translation;
-//
-//  // Inverse matrix
-//  // tf_camera_rotation = tf_camera_rotation.transpose();
-//  // tf_camera_translation = -(tf_camera_rotation * tf_camera_translation);
-//
-//  // Transform from orb coordinate system to ros coordinate system on map
-//  // coordinates
-//  // tf_camera_rotation = tf_orb_to_ros * tf_camera_rotation;
-//  // tf_camera_translation = tf_orb_to_ros * tf_camera_translation;
-//
-//  return tf2::Transform(tf_camera_rotation, tf_camera_translation);
-//}
+tf2::Transform from_orb_to_ros_tf_transform(cv::Mat transformation_mat) {
+  cv::Mat orb_rotation(3, 3, CV_32F);
+  cv::Mat orb_translation(3, 1, CV_32F);
+
+  orb_rotation = transformation_mat.rowRange(0, 3).colRange(0, 3);
+  orb_translation = transformation_mat.rowRange(0, 3).col(3);
+
+  tf2::Matrix3x3 tf_camera_rotation(
+      orb_rotation.at<float>(0, 0), orb_rotation.at<float>(0, 1),
+      orb_rotation.at<float>(0, 2), orb_rotation.at<float>(1, 0),
+      orb_rotation.at<float>(1, 1), orb_rotation.at<float>(1, 2),
+      orb_rotation.at<float>(2, 0), orb_rotation.at<float>(2, 1),
+      orb_rotation.at<float>(2, 2));
+
+  tf2::Vector3 tf_camera_translation(orb_translation.at<float>(0),
+                                     orb_translation.at<float>(1),
+                                     orb_translation.at<float>(2));
+
+  // cout << setprecision(9) << "Rotation: " << endl << orb_rotation << endl;
+  // cout << setprecision(9) << "Translation xyz: " << orb_translation.at<float>
+  // (0) << " " << orb_translation.at<float> (1) << " " <<
+  // orb_translation.at<float> (2) << endl;
+
+  // Transform from orb coordinate system to ros coordinate system on camera
+  // coordinates
+  // tf_camera_rotation = tf_orb_to_ros * tf_camera_rotation;
+  // tf_camera_translation = tf_orb_to_ros * tf_camera_translation;
+
+  // Inverse matrix
+  // tf_camera_rotation = tf_camera_rotation.transpose();
+  // tf_camera_translation = -(tf_camera_rotation * tf_camera_translation);
+
+  // Transform from orb coordinate system to ros coordinate system on map
+  // coordinates
+  // tf_camera_rotation = tf_orb_to_ros * tf_camera_rotation;
+  // tf_camera_translation = tf_orb_to_ros * tf_camera_translation;
+
+  return tf2::Transform(tf_camera_rotation, tf_camera_translation);
+}
 
 sensor_msgs::msg::PointCloud2
 tracked_mappoints_to_pointcloud(std::vector<ORB_SLAM3::MapPoint *> map_points,

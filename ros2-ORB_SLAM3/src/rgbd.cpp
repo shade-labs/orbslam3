@@ -27,7 +27,8 @@ using std::placeholders::_1;
 
 class RgbdSlamNode : public rclcpp::Node {
 public:
-  RgbdSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize);
+  RgbdSlamNode(const std::string &vocabFile, const std::string &settingsFile,
+               const bool visualize);
 
   ~RgbdSlamNode();
 
@@ -58,9 +59,13 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-RgbdSlamNode::RgbdSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize) : Node("orbslam3") {
+RgbdSlamNode::RgbdSlamNode(const std::string &vocabFile,
+                           const std::string &settingsFile,
+                           const bool visualize)
+    : Node("orbslam3") {
 
-  slam = std::make_shared<ORB_SLAM3::System>(vocabFile, settingsFile, ORB_SLAM3::System::RGBD, visualize);
+  slam = std::make_shared<ORB_SLAM3::System>(
+      vocabFile, settingsFile, ORB_SLAM3::System::RGBD, visualize);
   rgb_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
       shared_ptr<rclcpp::Node>(this), "camera/rgb");
   depth_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
@@ -94,8 +99,7 @@ void RgbdSlamNode::GrabFrame(const ImageMsg::SharedPtr &msgRGB,
 
   rclcpp::Time current_frame_time = cv_ptrRGB->header.stamp;
 
-  //  publish_ros_pose_tf(*this, Tcw, current_frame_time,
-  //  ORB_SLAM3::System::RGBD);
+  publish_ros_pose_tf(*this, Tcw, current_frame_time, ORB_SLAM3::System::RGBD);
 
   publish_ros_tracking_mappoints(slam->GetTrackedMapPoints(),
                                  current_frame_time);

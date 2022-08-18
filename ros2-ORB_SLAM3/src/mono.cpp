@@ -27,7 +27,8 @@ using std::placeholders::_1;
 
 class MonoSlamNode : public rclcpp::Node {
 public:
-  MonoSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize);
+  MonoSlamNode(const std::string &vocabFile, const std::string &settingsFile,
+               const bool visualize);
 
   ~MonoSlamNode();
 
@@ -52,10 +53,15 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-MonoSlamNode::MonoSlamNode(const std::string &vocabFile, const std::string &settingsFile, const bool visualize) : Node("orbslam3") {
-
-  slam = std::make_shared<ORB_SLAM3::System>(vocabFile, settingsFile, ORB_SLAM3::System::MONOCULAR, visualize);
-  img_sub = this->create_subscription<ImageMsg>("camera", 10, std::bind(&MonoSlamNode::GrabFrame, this, std::placeholders::_1));
+MonoSlamNode::MonoSlamNode(const std::string &vocabFile,
+                           const std::string &settingsFile,
+                           const bool visualize)
+    : Node("orbslam3") {
+  slam = std::make_shared<ORB_SLAM3::System>(
+      vocabFile, settingsFile, ORB_SLAM3::System::MONOCULAR, visualize);
+  img_sub = this->create_subscription<ImageMsg>(
+      "camera", 10,
+      std::bind(&MonoSlamNode::GrabFrame, this, std::placeholders::_1));
 
   setup_ros_publishers(*this);
 }
@@ -79,7 +85,8 @@ void MonoSlamNode::GrabFrame(const ImageMsg::SharedPtr msgImg) {
 
   rclcpp::Time current_frame_time = cv_ptrImg->header.stamp;
 
-  //  publish_ros_pose_tf(*this, Tcw, current_frame_time, ORB_SLAM3::System::MONOCULAR);
+  publish_ros_pose_tf(*this, Tcw, current_frame_time,
+                      ORB_SLAM3::System::MONOCULAR);
 
   publish_ros_tracking_mappoints(slam->GetTrackedMapPoints(),
                                  current_frame_time);
