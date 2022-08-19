@@ -67,9 +67,9 @@ RgbdSlamNode::RgbdSlamNode(const std::string &vocabFile,
   slam = std::make_shared<ORB_SLAM3::System>(
       vocabFile, settingsFile, ORB_SLAM3::System::RGBD, visualize);
   rgb_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
-      shared_ptr<rclcpp::Node>(this), "camera/rgb");
+      shared_ptr<rclcpp::Node>(this), "orbslam3/camera/rgb");
   depth_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(
-      shared_ptr<rclcpp::Node>(this), "camera/depth");
+      shared_ptr<rclcpp::Node>(this), "orbslam3/camera/depth");
   syncApproximate = std::make_shared<message_filters::Synchronizer<SyncMsg>>(
       SyncMsg(10), *rgb_sub, *depth_sub);
   syncApproximate->registerCallback(&RgbdSlamNode::GrabFrame, this);

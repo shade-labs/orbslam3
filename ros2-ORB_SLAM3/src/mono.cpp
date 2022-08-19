@@ -60,7 +60,7 @@ MonoSlamNode::MonoSlamNode(const std::string &vocabFile,
   slam = std::make_shared<ORB_SLAM3::System>(
       vocabFile, settingsFile, ORB_SLAM3::System::MONOCULAR, visualize);
   img_sub = this->create_subscription<ImageMsg>(
-      "camera", 10,
+      "orbslam3/camera", 10,
       std::bind(&MonoSlamNode::GrabFrame, this, std::placeholders::_1));
 
   setup_ros_publishers(*this);
