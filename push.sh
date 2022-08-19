@@ -1,3 +1,5 @@
+#!/bin/bash
+
 declare -a ROS_DISTROS=( "foxy" "galactic" "humble" "rolling" )
 
 
